@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { IoMdClose } from "react-icons/io";
-
+import { useAuth } from "../contexts/AuthContextProvider";
+import { collection, addDoc } from "firebase/firestore";
+import { toast } from "react-toastify";
+import { db } from "../components/firebase/firebaseConfig";
 const AddProject = () => {
   const [tasks, setTasks] = useState<string[]>([]);
   const [taskInput, setTaskInput] = useState("");
   const [projectName, setProjectName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const date = new Date();
+  const { user: currentUser } = useAuth();
   const handleAddTask = () => {
     if (taskInput.trim()) {
       setTasks([...tasks, taskInput.trim()]);
@@ -15,6 +18,41 @@ const AddProject = () => {
   };
   const handleRemoveTask = (index: number) => {
     setTasks(tasks.filter((_, i) => i !== index));
+  };
+  const handleSave = async () => {
+    if (!currentUser?.uid) {
+      toast.error("User is not authenticated. Please log in again.", {
+        position: "top-center",
+      });
+      return;
+    }
+
+    try {
+      const projectData = {
+        projectName,
+        description,
+        tasks,
+        completedTasks: new Array(tasks.length).fill(false), // Initialize completedTasks
+        createdAt: new Date(),
+        id: currentUser.uid,
+      };
+
+      // Add a new document with an auto-generated ID
+      const docRef = await addDoc(collection(db, "projects"), projectData);
+      console.log("Project added to the database with ID:", docRef.id);
+      toast.success("Project saved successfully!", {
+        position: "top-center",
+      });
+
+      setProjectName("");
+      setDescription("");
+      setTasks([]);
+    } catch (error) {
+      console.error("Error saving project:", error);
+      toast.error("Failed to save project.", {
+        position: "bottom-center",
+      });
+    }
   };
 
   return (
@@ -68,7 +106,10 @@ const AddProject = () => {
           ))}
         </div>
         <div className="mt-3 flex justify-end items-center w-full">
-          <button className="px-12 py-1 text-base bg-purple-500 text-white rounded-md">
+          <button
+            onClick={handleSave}
+            className="px-12 py-1 text-base bg-purple-500 text-white rounded-md"
+          >
             Confirm
           </button>
         </div>

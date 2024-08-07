@@ -32,6 +32,7 @@ const Login = ({ handleChange }: { handleChange: (x: string) => void }) => {
       console.log("User logged successfully!");
       toast.success("User logged successfully!!");
     } catch (error: any) {
+      toast.error("You are not registered user!");
       console.log(error.message);
     }
   };

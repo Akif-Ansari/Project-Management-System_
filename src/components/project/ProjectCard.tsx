@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { IoIosArrowDown, IoMdAdd } from "react-icons/io";
 import { MdDelete, MdModeEdit, MdDone, MdRemoveDone } from "react-icons/md";
 import { GiConfirmed } from "react-icons/gi";
 import { IoOpenOutline } from "react-icons/io5";
 import { ProjectCardProps } from "../../config";
-
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
 const ProjectCard = ({
   id,
   name,
@@ -21,6 +22,37 @@ const ProjectCard = ({
   const [completedTasks, setCompletedTasks] = useState<boolean[]>(
     new Array(tasks.length).fill(false)
   );
+  // useEffect(() => {
+  //   const testUpdate = async () => {
+  //     try {
+  //       await updateProjectTasksInDB(
+  //         "testProjectId",
+  //         ["Task 1", "Task 2"],
+  //         [false, true]
+  //       );
+  //     } catch (error) {
+  //       console.error("Test update failed:", error);
+  //     }
+  //   };
+
+  //   testUpdate();
+  // });
+  const updateProjectTasksInDB = async (
+    projectId: string,
+    tasks: string[],
+    completedTasks: boolean[]
+  ) => {
+    try {
+      const projectRef = doc(db, "projects", projectId);
+      await updateDoc(projectRef, {
+        tasks: tasks,
+        completedTasks: completedTasks,
+      });
+      console.log("Tasks updated successfully");
+    } catch (error: any) {
+      console.error("Error updating tasks:", error.message);
+    }
+  };
 
   const handleTaskChange = (value: string, index: number) => {
     const updatedTasks = [...taskValues];
@@ -28,25 +60,29 @@ const ProjectCard = ({
     setTaskValues(updatedTasks);
   };
 
-  const handleDeleteTask = (index: number) => {
+  const handleDeleteTask = async (index: number) => {
     const updatedTasks = taskValues.filter((_, i) => i !== index);
     const updatedCompletedTasks = completedTasks.filter((_, i) => i !== index);
     setTaskValues(updatedTasks);
     setCompletedTasks(updatedCompletedTasks);
+    await updateProjectTasksInDB(id, updatedTasks, updatedCompletedTasks);
   };
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (isActiveAddTask && newTask.trim() !== "") {
-      setTaskValues([...taskValues, newTask]);
-      setCompletedTasks([...completedTasks, false]);
+      const updatedTasks = [...taskValues, newTask];
+      const updatedCompletedTasks = [...completedTasks, false];
+      setTaskValues(updatedTasks);
+      setCompletedTasks(updatedCompletedTasks);
       setNewTask("");
       setIsActiveAddTask(false);
+      await updateProjectTasksInDB(id, updatedTasks, updatedCompletedTasks);
     }
   };
-
-  const toggleTaskCompletion = (index: number) => {
+  const toggleTaskCompletion = async (index: number) => {
     const updatedCompletedTasks = [...completedTasks];
     updatedCompletedTasks[index] = !updatedCompletedTasks[index];
     setCompletedTasks(updatedCompletedTasks);
+    await updateProjectTasksInDB(id, taskValues, updatedCompletedTasks);
   };
 
   return (
@@ -61,7 +97,7 @@ const ProjectCard = ({
           <IoOpenOutline className="text-xl text-black/50 cursor-pointer" />
         </div>
       </div>
-      <p className="text-xs text-black/50">{date}</p>
+      <p className="text-xs text-black/50">{date as string}</p>
       <p className="text-base py-4">{description}</p>
       <button
         onClick={() => setIsActiveTasks((prev) => !prev)}

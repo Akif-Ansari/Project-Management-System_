@@ -19,6 +19,7 @@ const SignUp = ({ handleChange }: { handleChange: (x: string) => void }) => {
       console.log(user);
       if (user) {
         await setDoc(doc(db, "User", user.uid), {
+          id: user.uid,
           email: user.email,
           userName: name,
           password: pass,
